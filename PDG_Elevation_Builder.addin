@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Command">
+    <Text>PDG_Elevation_Builder - Command 1</Text>
+    <Description>Some description</Description>
+    <Assembly>PDG_Elevation_Builder\PDG_Elevation_Builder.dll</Assembly>
+    <FullClassName>PDG_Elevation_Builder.Command1</FullClassName>
+    <ClientId>e9cce981-506b-41b3-9e17-acfbbd07a65f</ClientId>
+    <VendorId>com.YOUR COMPANY NAME</VendorId>
+    <VendorDescription>YOUR COMPANY NAME, YOUR COMPANY URL</VendorDescription>
+  </AddIn>
+  <AddIn Type="Command">
+    <Text>PDG_Elevation_Builder - Command 2</Text>
+    <Description>Some description</Description>
+    <Assembly>PDG_Elevation_Builder\PDG_Elevation_Builder.dll</Assembly>
+    <FullClassName>PDG_Elevation_Builder.Command2</FullClassName>
+    <ClientId>23633230-3da3-4955-806d-64df7b7bdf96</ClientId>
+    <VendorId>com.YOUR COMPANY NAME</VendorId>
+    <VendorDescription>YOUR COMPANY NAME, YOUR COMPANY URL</VendorDescription>
+  </AddIn>
+  <AddIn Type="Application">
+    <Name>PDG_Elevation_Builder</Name>
+    <Assembly>PDG_Elevation_Builder\PDG_Elevation_Builder.dll</Assembly>
+    <FullClassName>PDG_Elevation_Builder.App</FullClassName>
+    <ClientId>8d08a464-9228-4bf6-95d1-deafe994d67f</ClientId>
+    <VendorId>com.YOUR COMPANY NAME</VendorId>
+    <VendorDescription>YOUR COMPANY NAME, YOUR COMPANY URL</VendorDescription>
+  </AddIn>
+</RevitAddIns>
