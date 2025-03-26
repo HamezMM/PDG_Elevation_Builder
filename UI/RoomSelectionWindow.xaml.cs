@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.UI;
@@ -20,6 +22,8 @@ namespace PDG_Elevation_Builder.UI
         private Document _doc;
         private ObservableCollection<RoomViewModel> _rooms;
         private ProjectNorthOrientation _selectedOrientation = ProjectNorthOrientation.North;
+        private RoomViewModel _lastSelectedRoom = null;
+        private ObservableCollection<RoomViewModel> _filteredRooms;
 
         public List<RoomViewModel> SelectedRooms { get; private set; }
         public ProjectNorthOrientation SelectedOrientation => _selectedOrientation;
@@ -38,9 +42,28 @@ namespace PDG_Elevation_Builder.UI
             LoadRooms();
             HighlightDefaultOrientation();
 
+            // Add keyboard handler for shift selection
+            RoomsListView.PreviewKeyDown += new System.Windows.Input.KeyEventHandler(RoomsListView_PreviewKeyDown);
+
             // Set window owner to Revit's main window for proper modal behavior
             Owner = System.Windows.Interop.HwndSource.FromHwnd(
                 Autodesk.Windows.ComponentManager.ApplicationWindow).RootVisual as Window;
+        }
+
+        /// <summary>
+        /// Handles keyboard input for the ListView
+        /// </summary>
+        private void RoomsListView_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Space)
+            {
+                // Toggle selection for all selected items
+                foreach (RoomViewModel room in RoomsListView.SelectedItems)
+                {
+                    room.IsSelected = !room.IsSelected;
+                }
+                e.Handled = true;
+            }
         }
 
         /// <summary>
@@ -85,7 +108,8 @@ namespace PDG_Elevation_Builder.UI
                         Level = levelName,
                         Area = $"{area:F2} SF",
                         Department = department,
-                        IsSelected = false
+                        IsSelected = false,
+                        Index = _rooms.Count // Store original index for shift-selection
                     };
 
                     _rooms.Add(roomVM);
@@ -95,7 +119,15 @@ namespace PDG_Elevation_Builder.UI
             // Sort rooms by level and number
             var sortedRooms = new ObservableCollection<RoomViewModel>(
                 _rooms.OrderBy(r => r.Level).ThenBy(r => r.Number));
+
+            // Update indices after sorting
+            for (int i = 0; i < sortedRooms.Count; i++)
+            {
+                sortedRooms[i].Index = i;
+            }
+
             _rooms = sortedRooms;
+            _filteredRooms = _rooms;
 
             // Set as data source
             RoomsListView.ItemsSource = _rooms;
@@ -129,17 +161,81 @@ namespace PDG_Elevation_Builder.UI
             {
                 // Show all rooms if search is empty
                 RoomsListView.ItemsSource = _rooms;
+                _filteredRooms = _rooms;
             }
             else
             {
                 // Filter rooms based on search text
-                var filteredRooms = _rooms.Where(r =>
-                    r.Number.ToLower().Contains(searchText) ||
-                    r.Name.ToLower().Contains(searchText) ||
-                    r.Level.ToLower().Contains(searchText) ||
-                    r.Department.ToLower().Contains(searchText)).ToList();
+                var filteredRooms = new ObservableCollection<RoomViewModel>(
+                    _rooms.Where(r =>
+                        r.Number.ToLower().Contains(searchText) ||
+                        r.Name.ToLower().Contains(searchText) ||
+                        r.Level.ToLower().Contains(searchText) ||
+                        r.Department.ToLower().Contains(searchText)));
 
                 RoomsListView.ItemsSource = filteredRooms;
+                _filteredRooms = filteredRooms;
+            }
+        }
+
+        /// <summary>
+        /// Handles checkbox click events for rooms
+        /// </summary>
+        private void RoomCheckbox_Click(object sender, RoutedEventArgs e)
+        {
+            // Get the clicked checkbox
+            System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
+            if (checkBox == null) return;
+
+            // Get the room view model associated with this checkbox
+            RoomViewModel currentRoom = checkBox.DataContext as RoomViewModel;
+            if (currentRoom == null) return;
+
+            // Check if Shift key is pressed for batch selection
+            if (Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift) || Keyboard.IsKeyDown(System.Windows.Input.Key.RightShift))
+            {
+                if (_lastSelectedRoom != null)
+                {
+                    // Determine the range of indices to select
+                    int startIndex = Math.Min(_lastSelectedRoom.Index, currentRoom.Index);
+                    int endIndex = Math.Max(_lastSelectedRoom.Index, currentRoom.Index);
+
+                    // Find all room objects within this range in the current filtered collection
+                    var roomsInRange = _filteredRooms.Where(r =>
+                                                    r.Index >= startIndex &&
+                                                    r.Index <= endIndex).ToList();
+
+                    // Set all rooms in the range to have the same IsSelected value as the current room
+                    foreach (var room in roomsInRange)
+                    {
+                        room.IsSelected = currentRoom.IsSelected;
+                    }
+                }
+            }
+
+            // Store this as the last selected room for future shift-click operations
+            _lastSelectedRoom = currentRoom;
+        }
+
+        /// <summary>
+        /// Selects all rooms in the current filtered view
+        /// </summary>
+        private void SelectAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (RoomViewModel room in _filteredRooms)
+            {
+                room.IsSelected = true;
+            }
+        }
+
+        /// <summary>
+        /// Clears selection for all rooms in the current filtered view
+        /// </summary>
+        private void ClearSelectionButton_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (RoomViewModel room in _filteredRooms)
+            {
+                room.IsSelected = false;
             }
         }
 
@@ -249,6 +345,7 @@ namespace PDG_Elevation_Builder.UI
         public string Level { get; set; }
         public string Area { get; set; }
         public string Department { get; set; }
+        public int Index { get; set; } // Added to support shift-selection
 
         public bool IsSelected
         {

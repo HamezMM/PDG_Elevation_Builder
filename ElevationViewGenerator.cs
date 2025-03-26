@@ -15,7 +15,8 @@ namespace PDG_Elevation_Builder
     {
         private Document _doc;
         private ProjectNorthOrientation _northOrientation;
-        private const double _defaultOffset = 1.0; // Default offset in feet
+        private const double _defaultOffset = 0.167; // Default offset in feet
+        private HashSet<string> _existingViewNames = new HashSet<string>(); // Cache of existing view names
 
         /// <summary>
         /// Constructor for the Elevation View Generator
@@ -26,55 +27,116 @@ namespace PDG_Elevation_Builder
         {
             _doc = doc;
             _northOrientation = northOrientation;
+
+            // Initialize the hash set if needed
+            if (_existingViewNames == null)
+            {
+                _existingViewNames = new HashSet<string>();
+            }
+
+            // Cache all existing view names to check for conflicts
+            LoadExistingViewNames();
+        }
+
+        /// <summary>
+        /// Loads all existing view names from the document to check for conflicts
+        /// </summary>
+        private void LoadExistingViewNames()
+        {
+            if (_existingViewNames == null)
+            {
+                _existingViewNames = new HashSet<string>();
+            }
+            else
+            {
+                _existingViewNames.Clear();
+            }
+
+            // Get all views in the document
+            FilteredElementCollector viewCollector = new FilteredElementCollector(_doc);
+            viewCollector.OfClass(typeof(View));
+
+            // Store all view names
+            foreach (View view in viewCollector)
+            {
+                if (view != null && !string.IsNullOrEmpty(view.Name))
+                {
+                    _existingViewNames.Add(view.Name);
+                }
+            }
         }
 
         /// <summary>
         /// Creates elevation views for a list of room IDs
         /// </summary>
         /// <param name="roomIds">List of room element IDs</param>
-        /// <returns>Dictionary of created elevations mapped to room IDs</returns>
-        public Dictionary<ElementId, List<ElementId>> CreateElevationsFromRoomList(List<ElementId> roomIds)
+        /// <returns>Dictionary of created elevations mapped to room IDs and a list of any name conflicts</returns>
+        public (Dictionary<ElementId, List<ElementId>>, List<string>) CreateElevationsFromRoomList(List<ElementId> roomIds)
         {
             Dictionary<ElementId, List<ElementId>> result = new Dictionary<ElementId, List<ElementId>>();
+            List<string> nameConflicts = new List<string>();
+
+            if (roomIds == null || roomIds.Count == 0)
+            {
+                return (result, nameConflicts);
+            }
+
+            // Make sure the view names cache is initialized
+            if (_existingViewNames == null || _existingViewNames.Count == 0)
+            {
+                LoadExistingViewNames();
+            }
 
             foreach (ElementId roomId in roomIds)
             {
+                if (roomId == null) continue;
+
                 Room room = _doc.GetElement(roomId) as Room;
                 if (room != null && room.Area > 0)
                 {
-                    List<ElementId> elevationViewIds = CreateElevationsForRoom(roomId);
-                    if (elevationViewIds.Count > 0)
+                    var roomResults = CreateElevationsForRoom(roomId);
+                    var elevationViewIds = roomResults.Item1;
+                    var conflicts = roomResults.Item2;
+
+                    if (elevationViewIds != null && elevationViewIds.Count > 0)
                     {
                         result.Add(roomId, elevationViewIds);
+                    }
+
+                    // Collect any name conflicts
+                    if (conflicts != null && conflicts.Count > 0)
+                    {
+                        nameConflicts.AddRange(conflicts);
                     }
                 }
             }
 
-            return result;
+            return (result, nameConflicts);
         }
 
         /// <summary>
         /// Creates elevation markers for a single room
         /// </summary>
         /// <param name="roomId">Room element ID</param>
-        /// <returns>List of created elevation view IDs</returns>
-        private List<ElementId> CreateElevationsForRoom(ElementId roomId)
+        /// <returns>List of created elevation view IDs and any name conflicts</returns>
+        private (List<ElementId>, List<string>) CreateElevationsForRoom(ElementId roomId)
         {
             List<ElementId> elevationIds = new List<ElementId>();
+            List<string> nameConflicts = new List<string>();
 
             Room room = _doc.GetElement(roomId) as Room;
             if (room == null || room.Area <= 0)
-                return elevationIds;
+                return (elevationIds, nameConflicts);
 
             // Get room boundaries
             IList<IList<BoundarySegment>> boundaries = GetRoomBoundarySegments(room);
             if (boundaries == null || boundaries.Count == 0)
-                return elevationIds;
+                return (elevationIds, nameConflicts);
 
             // Get room bounding box to determine dimensions
             BoundingBoxXYZ roomBB = room.get_BoundingBox(null);
             if (roomBB == null)
-                return elevationIds;
+                return (elevationIds, nameConflicts);
 
             // Calculate room center point
             XYZ minPoint = roomBB.Min;
@@ -104,12 +166,12 @@ namespace PDG_Elevation_Builder
             // Get the view family type for elevations
             ViewFamilyType vft = GetElevationViewFamilyType();
             if (vft == null)
-                return elevationIds;
+                return (elevationIds, nameConflicts);
 
             // Create elevation marker at the center of the room
             FamilySymbol markerSymbol = GetElevationMarkerSymbol();
             if (markerSymbol == null)
-                return elevationIds;
+                return (elevationIds, nameConflicts);
 
             // Ensure the symbol is active
             if (!markerSymbol.IsActive)
@@ -129,10 +191,23 @@ namespace PDG_Elevation_Builder
                 // Get view orientation (North, East, South, West)
                 string orientation = GetCompassDirection(originalViewDir);
 
-                // Set view name
+                // Generate view name
                 string roomNumber = room.Number ?? "";
                 string roomName = room.Name ?? "Room";
-                elevationView.Name = $"{roomNumber} - {roomName} - {orientation} Elevation";
+                string proposedName = $"{roomNumber} - {roomName} - {orientation} Elevation";
+
+                // Check for name conflicts
+                string uniqueName = GetUniqueViewName(proposedName);
+                if (uniqueName != proposedName)
+                {
+                    nameConflicts.Add($"'{proposedName}' renamed to '{uniqueName}'");
+                }
+
+                // Set view name
+                elevationView.Name = uniqueName;
+
+                // Add to existing names for future conflict checks
+                _existingViewNames.Add(uniqueName);
 
                 // Create a new empty crop box
                 BoundingBoxXYZ newCropBox = elevationView.CropBox;
@@ -169,8 +244,8 @@ namespace PDG_Elevation_Builder
                 switch (direction)
                 {
                     case "Up": // North
-                        newCropBox.Min = new XYZ(minPoint.X - cropOffset - (cropOffset*0.5) - (maxPoint.X - minPoint.X), level.Elevation - cropOffset, min.Z);
-                        newCropBox.Max = new XYZ(maxPoint.X + cropOffset - (cropOffset * 0.5) - (maxPoint.X - minPoint.X), ((int)roomBB.Max.Z) + cropOffset, max.Z);
+                        newCropBox.Min = new XYZ(-minPoint.X - (maxPoint.X-minPoint.X) - cropOffset, level.Elevation - cropOffset, min.Z);
+                        newCropBox.Max = new XYZ(-minPoint.X + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
                         break;
                     case "Down": // South
                         // For North/South elevations, expand width (X) and adjust height (Z)
@@ -183,8 +258,8 @@ namespace PDG_Elevation_Builder
                         break;
                     case "Left": // West
                         // For East/West elevations, expand width (Y) and adjust height (Z)
-                        newCropBox.Min = new XYZ(minPoint.Y - cropOffset - (cropOffset*0.5) - (maxPoint.Y - minPoint.Y), level.Elevation - cropOffset, min.Z);
-                        newCropBox.Max = new XYZ(maxPoint.Y + cropOffset - (cropOffset * 0.5) - (maxPoint.Y - minPoint.Y), ((int)roomBB.Max.Z) + cropOffset, max.Z);
+                        newCropBox.Min = new XYZ(-minPoint.Y - cropOffset - (maxPoint.Y - minPoint.Y), level.Elevation - cropOffset, min.Z);
+                        newCropBox.Max = new XYZ(-minPoint.Y + (maxPoint.Y - minPoint.Y) + cropOffset - (maxPoint.Y - minPoint.Y), ((int)roomBB.Max.Z) + cropOffset, max.Z);
                         break;
                 }
 
@@ -194,9 +269,47 @@ namespace PDG_Elevation_Builder
                 // Add to result list
                 elevationIds.Add(elevationView.Id);
             }
-            return elevationIds;
+            return (elevationIds, nameConflicts);
         }
 
+        /// <summary>
+        /// Generates a unique view name if the proposed name already exists
+        /// </summary>
+        /// <param name="proposedName">The initially proposed view name</param>
+        /// <returns>A unique view name</returns>
+        private string GetUniqueViewName(string proposedName)
+        {
+            // Ensure the proposedName isn't null
+            if (string.IsNullOrEmpty(proposedName))
+            {
+                proposedName = "Unnamed Elevation";
+            }
+
+            // Ensure existingViewNames is initialized
+            if (_existingViewNames == null)
+            {
+                _existingViewNames = new HashSet<string>();
+                LoadExistingViewNames();
+            }
+
+            // If the name doesn't already exist, use it
+            if (!_existingViewNames.Contains(proposedName))
+            {
+                return proposedName;
+            }
+
+            // Otherwise append a number to make it unique
+            int counter = 1;
+            string newName;
+
+            do
+            {
+                newName = $"{proposedName} ({counter})";
+                counter++;
+            } while (_existingViewNames.Contains(newName));
+
+            return newName;
+        }
 
         /// <summary>
         /// Gets the first elevation marker family symbol

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Windows;
+using System.Windows.Forms;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
@@ -75,9 +77,9 @@ namespace PDG_Elevation_Builder
         /// <param name="selectedRooms">List of selected room view models</param>
         /// <param name="orientation">Project north orientation</param>
         private void CreateElevationsForRooms(
-            UIDocument uiDoc,
-            List<RoomViewModel> selectedRooms,
-            ProjectNorthOrientation orientation)
+             UIDocument uiDoc,
+             List<RoomViewModel> selectedRooms,
+             ProjectNorthOrientation orientation)
         {
             Document doc = uiDoc.Document;
 
@@ -88,6 +90,9 @@ namespace PDG_Elevation_Builder
                 { "Elevation Markers", 0 },
                 { "Elevation Views", 0 }
             };
+
+            // List to track renamed views
+            List<string> nameConflicts = new List<string>();
 
             // Create an instance of the ElevationViewGenerator
             ElevationViewGenerator generator = new ElevationViewGenerator(doc, orientation);
@@ -103,8 +108,8 @@ namespace PDG_Elevation_Builder
                 try
                 {
                     // Create elevations for all selected rooms
-                    Dictionary<ElementId, List<ElementId>> createdElevations =
-                        generator.CreateElevationsFromRoomList(roomIds);
+                    var (createdElevations, conflicts) = generator.CreateElevationsFromRoomList(roomIds);
+                    nameConflicts = conflicts;
 
                     // Update counts for reporting
                     createdElements["Rooms Processed"] = createdElevations.Count;
@@ -137,14 +142,36 @@ namespace PDG_Elevation_Builder
                 }
             }
 
+            // Create the completion message
+            StringBuilder message = new StringBuilder();
+            message.AppendLine($"Successfully processed:");
+            message.AppendLine($"- {createdElements["Rooms Processed"]} rooms");
+            message.AppendLine($"- Created {createdElements["Elevation Markers"]} elevation markers");
+            message.AppendLine($"- Generated {createdElements["Elevation Views"]} elevation views");
+
+            // Add information about renamed views if any
+            if (nameConflicts.Count > 0)
+            {
+                message.AppendLine();
+                message.AppendLine("The following views were renamed to avoid name conflicts:");
+
+                // Limit the number of conflicts shown to avoid overwhelming the user
+                int maxConflictsToShow = Math.Min(nameConflicts.Count, 10);
+                for (int i = 0; i < maxConflictsToShow; i++)
+                {
+                    message.AppendLine($"- {nameConflicts[i]}");
+                }
+
+                if (nameConflicts.Count > maxConflictsToShow)
+                {
+                    message.AppendLine($"- And {nameConflicts.Count - maxConflictsToShow} more conflicts...");
+                }
+            }
+
             // Show success message with summary
-            TaskDialog.Show("Elevation Creation Complete",
-                $"Successfully processed:\n" +
-                $"- {createdElements["Rooms Processed"]} rooms\n" +
-                $"- Created {createdElements["Elevation Markers"]} elevation markers\n" +
-                $"- Generated {createdElements["Elevation Views"]} elevation views");
+            TaskDialog.Show("Elevation Creation Complete", message.ToString());
         }
-    
+
         internal static PushButtonData GetButtonData()
         {
             // use this method to define the properties for this command in the Revit ribbon
