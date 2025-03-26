@@ -4,7 +4,7 @@
     <Text>PDG_Elevation_Builder - Command 1</Text>
     <Description>Some description</Description>
     <Assembly>PDG_Elevation_Builder\PDG_Elevation_Builder.dll</Assembly>
-    <FullClassName>PDG_Elevation_Builder.Command1</FullClassName>
+    <FullClassName>PDG_Elevation_Builder.ElevationBuilderCommand</FullClassName>
     <ClientId>e9cce981-506b-41b3-9e17-acfbbd07a65f</ClientId>
     <VendorId>com.YOUR COMPANY NAME</VendorId>
     <VendorDescription>YOUR COMPANY NAME, YOUR COMPANY URL</VendorDescription>
