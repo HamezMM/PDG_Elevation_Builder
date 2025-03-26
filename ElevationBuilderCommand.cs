@@ -8,6 +8,7 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using PDG_Elevation_Builder.UI;
+using PDG_Shared_Methods;
 
 namespace PDG_Elevation_Builder
 {
@@ -148,6 +149,35 @@ namespace PDG_Elevation_Builder
             message.AppendLine($"- {createdElements["Rooms Processed"]} rooms");
             message.AppendLine($"- Created {createdElements["Elevation Markers"]} elevation markers");
             message.AppendLine($"- Generated {createdElements["Elevation Views"]} elevation views");
+
+            double markerTime = createdElements["Elevation Markers"] * 6.0;
+
+            double viewTime = createdElements["Elevation Views"] * 26.5;
+
+            double manualTime = viewTime + markerTime;
+
+            // Factor the time saved into decimal hours
+            double timeSaved = manualTime * 0.00027777777777777778;
+
+            // Get current user
+            string username = Environment.UserName;
+
+            Task.Run(async () =>
+            {
+                var fields = AirtableUtils.LogCommandRun(
+                    "Place Room Elevations",
+                    username,
+                    timeSaved,
+                    Result.Succeeded
+                );
+
+                await AirtableUtils.AddRecord(
+                    "patTfknaTE8PDMSf0.94bd050d6f7949ae2f4f64a24b8f3a85b83212cd3f08f91430220c3d624dee86",
+                    "appzT98QjKTqecJ0V",
+                    "tblz8Be6kFE3IQ1Jc",
+                    fields
+                );
+            }).Wait();
 
             // Add information about renamed views if any
             if (nameConflicts.Count > 0)
