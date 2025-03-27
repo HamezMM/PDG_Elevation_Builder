@@ -19,11 +19,11 @@ namespace PDG_Elevation_Builder
             RibbonPanel panel = Common.Utils.CreateRibbonPanel(app, tabName, "Documentation Tools");
 
             // 3. Create button data instances
-            // PushButtonData btnData1 = Command1.GetButtonData();
-            PushButtonData btnData2 = Command2.GetButtonData();
+            PushButtonData btnData1 = ElevationBuilderCommand.GetButtonData();
+            PushButtonData btnData2 = ReferencePlanCreatorCommand.GetButtonData();
 
             // 4. Create buttons
-            // PushButton myButton1 = panel.AddItem(btnData1) as PushButton;
+            PushButton myButton1 = panel.AddItem(btnData1) as PushButton;
             PushButton myButton2 = panel.AddItem(btnData2) as PushButton;
 
             // NOTE:
