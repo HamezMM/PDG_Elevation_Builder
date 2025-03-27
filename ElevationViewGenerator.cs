@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 using PDG_Elevation_Builder.UI;
+using PDG_Shared_Methods;
+using PDGMethods;
 
 namespace PDG_Elevation_Builder
 {
@@ -191,10 +194,18 @@ namespace PDG_Elevation_Builder
                 // Get view orientation (North, East, South, West)
                 string orientation = GetCompassDirection(originalViewDir);
 
+                int index = room.Name.Split(' ').Count();
+
+                string roomName = "";
+
+                for (int j = 0; j<index-1; j++)
+                {
+                    roomName += room.Name.Split(' ')[j];
+                    roomName += " ";
+                }
+
                 // Generate view name
-                string roomNumber = room.Number ?? "";
-                string roomName = room.Name ?? "Room";
-                string proposedName = $"{roomNumber} - {roomName} - {orientation} Elevation";
+                string proposedName = $"RM{room.Number} - {roomName}- {orientation} Elevation";
 
                 // Check for name conflicts
                 string uniqueName = GetUniqueViewName(proposedName);
@@ -204,7 +215,10 @@ namespace PDG_Elevation_Builder
                 }
 
                 // Set view name
-                elevationView.Name = uniqueName;
+                elevationView.Name = uniqueName.ToUpper();
+
+                // Set view template
+                PDGMethods.Views.SetViewTemplate(_doc, elevationView, "CD32 - Interior Elevation");
 
                 // Add to existing names for future conflict checks
                 _existingViewNames.Add(uniqueName);
@@ -244,27 +258,29 @@ namespace PDG_Elevation_Builder
                 switch (direction)
                 {
                     case "Up": // North
-                        newCropBox.Min = new XYZ(-minPoint.X - (maxPoint.X-minPoint.X) - cropOffset, level.Elevation - cropOffset, min.Z);
+                        newCropBox.Min = new XYZ(-minPoint.X - (maxPoint.X-minPoint.X) - cropOffset, level.Elevation - cropOffset, -(maxPoint.Y - minPoint.Y));
                         newCropBox.Max = new XYZ(-minPoint.X + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
                         break;
                     case "Down": // South
                         // For North/South elevations, expand width (X) and adjust height (Z)
-                        newCropBox.Min = new XYZ(minPoint.X - cropOffset, level.Elevation - cropOffset, min.Z);
+                        newCropBox.Min = new XYZ(minPoint.X - cropOffset, level.Elevation - cropOffset, -(maxPoint.Y - minPoint.Y));
                         newCropBox.Max = new XYZ(maxPoint.X + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
                         break;
                     case "Right": // East
-                        newCropBox.Min = new XYZ(minPoint.Y - cropOffset, level.Elevation - cropOffset, min.Z);
+                        newCropBox.Min = new XYZ(minPoint.Y - cropOffset, level.Elevation - cropOffset, -(maxPoint.X - minPoint.X));
                         newCropBox.Max = new XYZ(maxPoint.Y + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
                         break;
                     case "Left": // West
                         // For East/West elevations, expand width (Y) and adjust height (Z)
-                        newCropBox.Min = new XYZ(-minPoint.Y - cropOffset - (maxPoint.Y - minPoint.Y), level.Elevation - cropOffset, min.Z);
+                        newCropBox.Min = new XYZ(-minPoint.Y - cropOffset - (maxPoint.Y - minPoint.Y), level.Elevation - cropOffset, -(maxPoint.X - minPoint.X));
                         newCropBox.Max = new XYZ(-minPoint.Y + (maxPoint.Y - minPoint.Y) + cropOffset - (maxPoint.Y - minPoint.Y), ((int)roomBB.Max.Z) + cropOffset, max.Z);
                         break;
                 }
 
                 // Apply the new crop box
                 elevationView.CropBox = newCropBox;
+
+                elevationView.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR).Set(Math.Abs((maxPoint.Y - minPoint.Y)/2)+cropOffset);
 
                 // Add to result list
                 elevationIds.Add(elevationView.Id);

@@ -39,8 +39,12 @@ namespace PDG_Elevation_Builder.UI
             _uiDoc = uiDoc;
             _doc = uiDoc.Document;
 
+            // Get the project orientation parameter value and set the initial orientation
+            int orientationValue = ProjectParametersUtil.GetProjectOrientationValue(_doc);
+            _selectedOrientation = ProjectParametersUtil.IntToOrientation(orientationValue);
+
             LoadRooms();
-            HighlightDefaultOrientation();
+            HighlightSelectedOrientation();
 
             // Add keyboard handler for shift selection
             RoomsListView.PreviewKeyDown += new System.Windows.Input.KeyEventHandler(RoomsListView_PreviewKeyDown);
@@ -87,7 +91,7 @@ namespace PDG_Elevation_Builder.UI
                 {
                     // Get room properties
                     string number = room.Number;
-                    string name = room.Name;
+
                     string levelName = (_doc.GetElement(room.LevelId) as Level)?.Name ?? "Unknown";
                     double area = UnitUtils.ConvertFromInternalUnits(room.Area, UnitTypeId.SquareFeet);
 
@@ -104,7 +108,7 @@ namespace PDG_Elevation_Builder.UI
                     {
                         Id = room.Id,
                         Number = number,
-                        Name = name,
+                        Name = GetRoomName(room).ToUpper(), // This now has the number removed if it was redundant
                         Level = levelName,
                         Area = $"{area:F2} SF",
                         Department = department,
@@ -136,7 +140,7 @@ namespace PDG_Elevation_Builder.UI
         /// <summary>
         /// Highlights the default orientation button (North)
         /// </summary>
-        private void HighlightDefaultOrientation()
+        private void HighlightSelectedOrientation()
         {
             // Reset all buttons
             NorthButton.Background = System.Windows.Media.Brushes.LightGray;
@@ -144,8 +148,22 @@ namespace PDG_Elevation_Builder.UI
             SouthButton.Background = System.Windows.Media.Brushes.LightGray;
             WestButton.Background = System.Windows.Media.Brushes.LightGray;
 
-            // Highlight selected button
-            NorthButton.Background = System.Windows.Media.Brushes.LightBlue;
+            // Highlight selected button based on the orientation parameter
+            switch (_selectedOrientation)
+            {
+                case ProjectNorthOrientation.North:
+                    NorthButton.Background = System.Windows.Media.Brushes.LightBlue;
+                    break;
+                case ProjectNorthOrientation.East:
+                    EastButton.Background = System.Windows.Media.Brushes.LightBlue;
+                    break;
+                case ProjectNorthOrientation.South:
+                    SouthButton.Background = System.Windows.Media.Brushes.LightBlue;
+                    break;
+                case ProjectNorthOrientation.West:
+                    WestButton.Background = System.Windows.Media.Brushes.LightBlue;
+                    break;
+            }
         }
 
         /// <summary>
@@ -318,6 +336,17 @@ namespace PDG_Elevation_Builder.UI
                 return;
             }
 
+            // Update the project orientation parameter before closing
+            using (Transaction trans = new Transaction(_doc, "Update Project Orientation"))
+            {
+                trans.Start();
+
+                int orientationValue = ProjectParametersUtil.OrientationToInt(_selectedOrientation);
+                ProjectParametersUtil.SetProjectOrientationValue(_doc, orientationValue);
+
+                trans.Commit();
+            }
+
             DialogResult = true;
             Close();
         }
@@ -329,6 +358,21 @@ namespace PDG_Elevation_Builder.UI
         {
             DialogResult = false;
             Close();
+        }
+
+        private string GetRoomName(Room room)
+        {
+            int index = room.Name.Split(' ').Count();
+
+            string roomName = "";
+
+            for (int j = 0; j < index - 1; j++)
+            {
+                roomName += room.Name.Split(' ')[j];
+                roomName += " ";
+            }
+
+            return roomName;
         }
     }
 
