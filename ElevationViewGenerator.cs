@@ -253,6 +253,8 @@ namespace PDG_Elevation_Builder
                     direction = "Right";
                 }
 
+                double farClipOffset = 0; 
+
                 // Adjust crop box dimensions based on view orientation
                 // We need to maintain the transform orientation while changing the size
                 switch (direction)
@@ -260,27 +262,30 @@ namespace PDG_Elevation_Builder
                     case "Up": // North
                         newCropBox.Min = new XYZ(-minPoint.X - (maxPoint.X-minPoint.X) - cropOffset, level.Elevation - cropOffset, -(maxPoint.Y - minPoint.Y));
                         newCropBox.Max = new XYZ(-minPoint.X + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
+                        farClipOffset = Math.Abs((maxPoint.Y - minPoint.Y) / 2) + cropOffset;
                         break;
                     case "Down": // South
                         // For North/South elevations, expand width (X) and adjust height (Z)
                         newCropBox.Min = new XYZ(minPoint.X - cropOffset, level.Elevation - cropOffset, -(maxPoint.Y - minPoint.Y));
                         newCropBox.Max = new XYZ(maxPoint.X + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
+                        farClipOffset = Math.Abs((maxPoint.Y - minPoint.Y) / 2) + cropOffset;
                         break;
                     case "Right": // East
                         newCropBox.Min = new XYZ(minPoint.Y - cropOffset, level.Elevation - cropOffset, -(maxPoint.X - minPoint.X));
                         newCropBox.Max = new XYZ(maxPoint.Y + cropOffset, ((int)roomBB.Max.Z) + cropOffset, max.Z);
+                        farClipOffset = Math.Abs((maxPoint.X - minPoint.X) / 2) + cropOffset;
                         break;
                     case "Left": // West
                         // For East/West elevations, expand width (Y) and adjust height (Z)
                         newCropBox.Min = new XYZ(-minPoint.Y - cropOffset - (maxPoint.Y - minPoint.Y), level.Elevation - cropOffset, -(maxPoint.X - minPoint.X));
                         newCropBox.Max = new XYZ(-minPoint.Y + (maxPoint.Y - minPoint.Y) + cropOffset - (maxPoint.Y - minPoint.Y), ((int)roomBB.Max.Z) + cropOffset, max.Z);
+                        farClipOffset = Math.Abs((maxPoint.X - minPoint.X) / 2) + cropOffset;
                         break;
                 }
 
-                // Apply the new crop box
+                // Apply the new crop box & view extent
                 elevationView.CropBox = newCropBox;
-
-                elevationView.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR).Set(Math.Abs((maxPoint.Y - minPoint.Y)/2)+cropOffset);
+                elevationView.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR).Set(farClipOffset);
 
                 // Add to result list
                 elevationIds.Add(elevationView.Id);
