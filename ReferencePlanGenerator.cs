@@ -111,7 +111,7 @@ namespace PDG_Elevation_Builder
             }
 
             // Set the view name - include elevation name and height
-            string planName = $"REF {elevationView.Name} - {cutHeight:0.00}'";
+            string planName = $"REF PLAN {elevationView.Name} - {cutHeight:0.00}'";
             planView.Name = GetUniqueViewName(planName);
 
             // Set view template if available
@@ -154,75 +154,62 @@ namespace PDG_Elevation_Builder
             // Calculate the X min/max (width dimension aligned with the elevation view width)
             double halfWidth = elevationWidth / 2.0;
 
-            /*
-            // Transform the view direction into plan view coordinates
-            XYZ planDirection = new XYZ(viewDirection.X, viewDirection.Y, 0).Normalize();
-
-            // Calculate the perpendicular direction (which becomes the width axis)
-            XYZ widthDirection = new XYZ(-planDirection.Y, planDirection.X, 0).Normalize();
-
-            // Calculate the points of the crop box
-            XYZ centerPoint = elevationTransform.Origin;
-
-            // Get min/max points based on width and depth
-            XYZ minPoint = centerPoint - widthDirection * halfWidth - planDirection * planExtent;
-            XYZ maxPoint = centerPoint + widthDirection * halfWidth;
-
-            // Set the crop box dimensions
-            planCropBox.Min = new XYZ(minPoint.X, minPoint.Y, planCropBox.Min.Z);
-            planCropBox.Max = new XYZ(maxPoint.X, maxPoint.Y, planCropBox.Max.Z);
-            */
-            string ? direction = null;
-
-            if (((int)originalViewDir.X) == 0 && ((int)originalViewDir.Y) == -1)
-            {
-                direction = "Up";
-            }
-            else if (((int)originalViewDir.X) == 0 && ((int)originalViewDir.Y) == 1)
-            {
-                direction = "Down";
-            }
-            else if (((int)originalViewDir.X) == -1 && ((int)originalViewDir.Y) == 0)
-            {
-                direction = "Left";
-            }
-            else if (((int)originalViewDir.X) == 1 && ((int)originalViewDir.Y) == 0)
-            {
-                direction = "Right";
-            }
-
             double farClipOffset = 0;
+
             double cropOffset = 0.167;
             // Adjust crop box dimensions based on view orientation
             // We need to maintain the transform orientation while changing the size
 
-            switch (direction)
-            {
-                case "Up": // North
-                           // Calculate the X min/max (width dimension aligned with the elevation view width)
-                    // Transform the view direction into plan view coordinates
-                    // Set the crop box dimensions
-                    planCropBox.Min = new XYZ(ogCBMin.X, (elevationView.Origin.Y + (0 - ogCBMin.Z)) - planExtent, planCropBox.Min.Z);
-                    planCropBox.Max = new XYZ(ogCBMax.X, elevationView.Origin.Y + (0-ogCBMin.Z), planCropBox.Max.Z);
-                    break;
-                case "Down": // South
-                             // For North/South elevations, expand width (X) and adjust height (Z)
-                    // Set the crop box dimensions
-                    planCropBox.Min = new XYZ(ogCBMin.X + (ogCBMax.X-ogCBMin.X) - (1.5* cropOffset), (elevationView.Origin.Y - (0 - ogCBMin.Z)), planCropBox.Min.Z);
-                    planCropBox.Max = new XYZ(ogCBMax.X + (ogCBMax.X-ogCBMin.X) - (1.5* cropOffset), elevationView.Origin.Y - (0 - ogCBMin.Z) + planExtent, planCropBox.Max.Z);
-                    break;
-                case "Right": // East
+            string quadrant = DetermineQuadrant(elevationView.Origin.X, elevationView.Origin.Y);
+            string direction = DetermineViewOrientation(elevationView.ViewDirection);
 
-                    planCropBox.Min = new XYZ(elevationView.Origin.X - (0- ogCBMin.Z), ogCBMin.X, planCropBox.Min.Z);
-                    planCropBox.Max = new XYZ(elevationView.Origin.X - (0-ogCBMin.Z) + planExtent, ogCBMax.X, planCropBox.Max.Z);
+
+            switch (quadrant)
+            {
+                case "Q1":
+                    switch (direction)
+                    {
+                        case "Up": // North
+                                   // Calculate the X min/max (width dimension aligned with the elevation view width)
+                                   // Transform the view direction into plan view coordinates
+                                   // Set the crop box dimensions
+                            planCropBox.Min = new XYZ(ogCBMin.X, (elevationView.Origin.Y + (0 - ogCBMin.Z)) - planExtent, planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(ogCBMax.X, elevationView.Origin.Y + (0 - ogCBMin.Z), planCropBox.Max.Z);
+                            break;
+                        case "Down": // South
+                                     // For North/South elevations, expand width (X) and adjust height (Z)
+                                     // Set the crop box dimensions
+                            planCropBox.Min = new XYZ(ogCBMin.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), (elevationView.Origin.Y - (0 - ogCBMin.Z)), planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(ogCBMax.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), elevationView.Origin.Y - (0 - ogCBMin.Z) + planExtent, planCropBox.Max.Z);
+                            break;
+                        case "Right": // East
+
+                            planCropBox.Min = new XYZ(elevationView.Origin.X - (0 - ogCBMin.Z), ogCBMin.X, planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(elevationView.Origin.X - (0 - ogCBMin.Z) + planExtent, ogCBMax.X, planCropBox.Max.Z);
+                            break;
+                        case "Left": // West
+                                     // For West-facing elevations (looking left/-x direction)
+                            planCropBox.Min = new XYZ(
+                                elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent,
+                                Math.Min(ogCBMin.Y, ogCBMax.Y) - cropOffset,
+                                planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(
+                                elevationView.Origin.X + (0 - ogCBMin.Z),
+                                Math.Max(ogCBMin.Y, ogCBMax.Y) + cropOffset,
+                                planCropBox.Max.Z);
+                            break;
+                    }
                     break;
-                case "Left": // West
-                             // For East/West elevations, expand width (Y) and adjust height (Z)
-                    planCropBox.Min = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent, ogCBMin.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), planCropBox.Min.Z);
-                    planCropBox.Max = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z), ogCBMax.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), planCropBox.Max.Z);
+                case "Q2":
+                    TaskDialog.Show("Quadrant", "Elevation in Q2");
+                    break;
+                case "Q3":
+                    TaskDialog.Show("Quadrant", "Elevation in Q3");
+                    break;
+                case "Q4":
+                    TaskDialog.Show("Quadrant", "Elevation in Q4");
                     break;
             }
-
 
             // Apply the crop box
             planView.CropBox = planCropBox;
@@ -331,6 +318,27 @@ namespace PDG_Elevation_Builder
             return newName;
         }
 
+        private string TestForViewName(string proposedName)
+        {
+            // If the name doesn't conflict, use it
+            if (!ViewNameExists(proposedName))
+            {
+                return proposedName;
+            }
+
+            // Otherwise append a number to make it unique
+            int counter = 1;
+            string newName;
+
+            do
+            {
+                newName = $"{proposedName} ({counter})";
+                counter++;
+            } while (ViewNameExists(newName));
+
+            return newName;
+        }
+
         /// <summary>
         /// Checks if a view name already exists in the document
         /// </summary>
@@ -352,6 +360,41 @@ namespace PDG_Elevation_Builder
             }
 
             return false;
+        }
+        /// <summary>
+        /// Determines which quadrant a point is in based on its X and Y coordinates
+        /// </summary>
+        /// <param name="x">X coordinate of the point</param>
+        /// <param name="y">Y coordinate of the point</param>
+        /// <returns>Quadrant as a string: "Q1" (+x,+y), "Q2" (-x,+y), "Q3" (-x,-y), or "Q4" (+x,-y)</returns>
+        private string DetermineQuadrant(double x, double y)
+        {
+            if (x >= 0 && y >= 0)
+                return "Q1"; // First quadrant: +x, +y
+            else if (x < 0 && y >= 0)
+                return "Q2"; // Second quadrant: -x, +y
+            else if (x < 0 && y < 0)
+                return "Q3"; // Third quadrant: -x, -y
+            else // (x >= 0 && y < 0)
+                return "Q4"; // Fourth quadrant: +x, -y
+        }
+
+        private string DetermineViewOrientation(XYZ viewDir)
+        {
+            // Normalize the vector components for more reliable comparison
+            viewDir = viewDir.Normalize();
+
+            // Check cardinal directions based on the primary components of the vector
+            if (Math.Abs(viewDir.Y) > Math.Abs(viewDir.X))
+            {
+                // Primarily Y-oriented
+                return viewDir.Y > 0 ? "North" : "South";
+            }
+            else
+            {
+                // Primarily X-oriented
+                return viewDir.X > 0 ? "East" : "West";
+            }
         }
     }
 }
