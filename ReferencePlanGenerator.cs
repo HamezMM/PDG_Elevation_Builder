@@ -61,20 +61,6 @@ namespace PDG_Elevation_Builder
                 return createdViews;
             }
 
-            // Get the elevation marker and direction
-            ElevationMarker marker = GetElevationMarker(elevationView);
-            if (marker == null)
-            {
-                return createdViews;
-            }
-
-            // Get view direction and location
-            XYZ viewDirection = elevationView.ViewDirection;
-            Transform viewTransform = elevationView.CropBox.Transform;
-            Location location = marker.Location;
-            LocationPoint locationPoint = (LocationPoint)location;
-            XYZ markerLocation = locationPoint.Point;
-
             // Get the elevation's level
             Level level = GetElevationLevel(elevationView);
             if (level == null)
@@ -129,16 +115,13 @@ namespace PDG_Elevation_Builder
             planView.Name = GetUniqueViewName(planName);
 
             // Set view template if available
-            PDGMethods.Views.SetViewTemplate(_doc, planView, "CD11 - Floor Plan");
+            PDGMethods.Views.SetViewTemplate(_doc, planView, "CD23 - Partition Plan");
 
             // Set cut plane height
-            planView.get_Parameter(BuiltInParameter.VIEW_PARTS_VISIBILITY).Set(1); // Show parts
+            PlanViewRange viewPR = planView.GetViewRange();
+            viewPR.SetOffset(PlanViewPlane.CutPlane, cutHeight);
             planView.CropBoxActive = true;
             planView.CropBoxVisible = true;
-
-            // Set cut plane offset
-            Parameter cutPlaneParam = planView.get_Parameter(BuiltInParameter.PLAN_VIEW_CUT_PLANE_HEIGHT);
-            cutPlaneParam.Set(cutHeight);
 
             // Adjust crop box to match the elevation width and specified depth
             AdjustPlanViewCropBox(planView, elevationView, planExtent);
@@ -155,19 +138,23 @@ namespace PDG_Elevation_Builder
         private void AdjustPlanViewCropBox(ViewPlan planView, ViewSection elevationView, double planExtent)
         {
             // Get elevation parameters
-            XYZ viewDirection = elevationView.ViewDirection;
+            XYZ originalViewDir = elevationView.ViewDirection;
             BoundingBoxXYZ elevationBox = elevationView.CropBox;
             Transform elevationTransform = elevationBox.Transform;
+
+            XYZ ogCBMax = elevationView.CropBox.Max;
+            XYZ ogCBMin = elevationView.CropBox.Min;
 
             // Get elevation dimensions
             double elevationWidth = Math.Abs(elevationBox.Max.X - elevationBox.Min.X);
 
             // Create a new crop box for the plan view
             BoundingBoxXYZ planCropBox = planView.CropBox;
-
+            
             // Calculate the X min/max (width dimension aligned with the elevation view width)
             double halfWidth = elevationWidth / 2.0;
 
+            /*
             // Transform the view direction into plan view coordinates
             XYZ planDirection = new XYZ(viewDirection.X, viewDirection.Y, 0).Normalize();
 
@@ -184,6 +171,58 @@ namespace PDG_Elevation_Builder
             // Set the crop box dimensions
             planCropBox.Min = new XYZ(minPoint.X, minPoint.Y, planCropBox.Min.Z);
             planCropBox.Max = new XYZ(maxPoint.X, maxPoint.Y, planCropBox.Max.Z);
+            */
+            string ? direction = null;
+
+            if (((int)originalViewDir.X) == 0 && ((int)originalViewDir.Y) == -1)
+            {
+                direction = "Up";
+            }
+            else if (((int)originalViewDir.X) == 0 && ((int)originalViewDir.Y) == 1)
+            {
+                direction = "Down";
+            }
+            else if (((int)originalViewDir.X) == -1 && ((int)originalViewDir.Y) == 0)
+            {
+                direction = "Left";
+            }
+            else if (((int)originalViewDir.X) == 1 && ((int)originalViewDir.Y) == 0)
+            {
+                direction = "Right";
+            }
+
+            double farClipOffset = 0;
+            double cropOffset = 0.167;
+            // Adjust crop box dimensions based on view orientation
+            // We need to maintain the transform orientation while changing the size
+
+            switch (direction)
+            {
+                case "Up": // North
+                           // Calculate the X min/max (width dimension aligned with the elevation view width)
+                    // Transform the view direction into plan view coordinates
+                    // Set the crop box dimensions
+                    planCropBox.Min = new XYZ(ogCBMin.X, (elevationView.Origin.Y + (0 - ogCBMin.Z)) - planExtent, planCropBox.Min.Z);
+                    planCropBox.Max = new XYZ(ogCBMax.X, elevationView.Origin.Y + (0-ogCBMin.Z), planCropBox.Max.Z);
+                    break;
+                case "Down": // South
+                             // For North/South elevations, expand width (X) and adjust height (Z)
+                    // Set the crop box dimensions
+                    planCropBox.Min = new XYZ(ogCBMin.X + (ogCBMax.X-ogCBMin.X) - (1.5* cropOffset), (elevationView.Origin.Y - (0 - ogCBMin.Z)), planCropBox.Min.Z);
+                    planCropBox.Max = new XYZ(ogCBMax.X + (ogCBMax.X-ogCBMin.X) - (1.5* cropOffset), elevationView.Origin.Y - (0 - ogCBMin.Z) + planExtent, planCropBox.Max.Z);
+                    break;
+                case "Right": // East
+
+                    planCropBox.Min = new XYZ(elevationView.Origin.X - (0- ogCBMin.Z), ogCBMin.X, planCropBox.Min.Z);
+                    planCropBox.Max = new XYZ(elevationView.Origin.X - (0-ogCBMin.Z) + planExtent, ogCBMax.X, planCropBox.Max.Z);
+                    break;
+                case "Left": // West
+                             // For East/West elevations, expand width (Y) and adjust height (Z)
+                    planCropBox.Min = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent, ogCBMin.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), planCropBox.Min.Z);
+                    planCropBox.Max = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z), ogCBMax.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), planCropBox.Max.Z);
+                    break;
+            }
+
 
             // Apply the crop box
             planView.CropBox = planCropBox;

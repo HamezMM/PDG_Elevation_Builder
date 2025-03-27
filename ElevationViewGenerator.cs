@@ -208,7 +208,7 @@ namespace PDG_Elevation_Builder
                 string proposedName = $"RM{room.Number} - {roomName}- {orientation} Elevation";
 
                 // Check for name conflicts
-                string uniqueName = GetUniqueViewName(proposedName);
+                string uniqueName = GetUniqueViewName(proposedName.ToUpper());
                 if (uniqueName != proposedName)
                 {
                     nameConflicts.Add($"'{proposedName}' renamed to '{uniqueName}'");
