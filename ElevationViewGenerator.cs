@@ -209,7 +209,7 @@ namespace PDG_Elevation_Builder
 
                 // Check for name conflicts
                 string uniqueName = GetUniqueViewName(proposedName.ToUpper());
-                if (uniqueName != proposedName)
+                if (uniqueName != proposedName.ToUpper())
                 {
                     nameConflicts.Add($"'{proposedName}' renamed to '{uniqueName}'");
                 }
@@ -286,6 +286,8 @@ namespace PDG_Elevation_Builder
                 // Apply the new crop box & view extent
                 elevationView.CropBox = newCropBox;
                 elevationView.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR).Set(farClipOffset);
+                Parameter elevationOrigin = Parameters.GetInstanceOrTypeParameterByName(elevationView, "Elevation_Origin");
+                elevationOrigin.Set($"{centerPoint.X.ToString()}" + "," + $"{centerPoint.Y}");
 
                 // Add to result list
                 elevationIds.Add(elevationView.Id);

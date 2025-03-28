@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 using PDG_Elevation_Builder.Models;
 using PDG_Elevation_Builder.UI;
+using PDGMethods;
 
 namespace PDG_Elevation_Builder
 {
@@ -160,7 +162,31 @@ namespace PDG_Elevation_Builder
             // Adjust crop box dimensions based on view orientation
             // We need to maintain the transform orientation while changing the size
 
-            string quadrant = DetermineQuadrant(elevationView.Origin.X, elevationView.Origin.Y);
+            string input = Parameters.GetInstanceOrTypeParameterByName(elevationView, "Elevation_Origin").AsValueString();
+            
+            string xPart = input.Split(',')[0];
+            string yPart = input.Split(',')[1];
+
+            double markerX = 0, markerY = 0;
+
+
+            // Handle x value - check for negative sign explicitly
+            bool xIsNegative = xPart.StartsWith("-");
+            if (xIsNegative)
+                xPart = xPart.Substring(1); // Remove the negative sign
+
+            if (double.TryParse(xPart, out markerX))
+                markerX = xIsNegative ? -markerX : markerX; // Apply negative sign if needed
+
+            // Handle y value in the same way
+            bool yIsNegative = yPart.StartsWith("-");
+            if (yIsNegative)
+                yPart = yPart.Substring(1); // Remove the negative sign
+
+            if (double.TryParse(yPart, out markerY))
+                markerY = yIsNegative ? -markerY : markerY; // Apply negative sign if needed
+
+            string quadrant = DetermineQuadrant(markerX, markerY);
             string direction = DetermineViewOrientation(elevationView.ViewDirection);
 
 
@@ -169,39 +195,44 @@ namespace PDG_Elevation_Builder
                 case "Q1":
                     switch (direction)
                     {
-                        case "Up": // North
-                                   // Calculate the X min/max (width dimension aligned with the elevation view width)
-                                   // Transform the view direction into plan view coordinates
-                                   // Set the crop box dimensions
+                        case "North":
                             planCropBox.Min = new XYZ(ogCBMin.X, (elevationView.Origin.Y + (0 - ogCBMin.Z)) - planExtent, planCropBox.Min.Z);
                             planCropBox.Max = new XYZ(ogCBMax.X, elevationView.Origin.Y + (0 - ogCBMin.Z), planCropBox.Max.Z);
                             break;
-                        case "Down": // South
-                                     // For North/South elevations, expand width (X) and adjust height (Z)
-                                     // Set the crop box dimensions
+                        case "South":
                             planCropBox.Min = new XYZ(ogCBMin.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), (elevationView.Origin.Y - (0 - ogCBMin.Z)), planCropBox.Min.Z);
                             planCropBox.Max = new XYZ(ogCBMax.X + (ogCBMax.X - ogCBMin.X) - (1.5 * cropOffset), elevationView.Origin.Y - (0 - ogCBMin.Z) + planExtent, planCropBox.Max.Z);
                             break;
-                        case "Right": // East
-
+                        case "East":
                             planCropBox.Min = new XYZ(elevationView.Origin.X - (0 - ogCBMin.Z), ogCBMin.X, planCropBox.Min.Z);
                             planCropBox.Max = new XYZ(elevationView.Origin.X - (0 - ogCBMin.Z) + planExtent, ogCBMax.X, planCropBox.Max.Z);
                             break;
-                        case "Left": // West
-                                     // For West-facing elevations (looking left/-x direction)
-                            planCropBox.Min = new XYZ(
-                                elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent,
-                                Math.Min(ogCBMin.Y, ogCBMax.Y) - cropOffset,
-                                planCropBox.Min.Z);
-                            planCropBox.Max = new XYZ(
-                                elevationView.Origin.X + (0 - ogCBMin.Z),
-                                Math.Max(ogCBMin.Y, ogCBMax.Y) + cropOffset,
-                                planCropBox.Max.Z);
+                        case "West":
+                            planCropBox.Min = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent, ogCBMin.X + (0 - ogCBMin.X) - (1 * cropOffset), planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z), ogCBMax.X + (0 - ogCBMin.X) - (1 * cropOffset), planCropBox.Max.Z);
                             break;
                     }
                     break;
                 case "Q2":
-                    TaskDialog.Show("Quadrant", "Elevation in Q2");
+                    switch (direction)
+                    {
+                        case "North":
+                            planCropBox.Min = new XYZ(ogCBMin.X, (elevationView.Origin.Y + (0 - ogCBMin.Z)) - planExtent, planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(ogCBMax.X, elevationView.Origin.Y + (0 - ogCBMin.Z), planCropBox.Max.Z);
+                            break;
+                        case "South":
+                            planCropBox.Min = new XYZ(0-Math.Abs(ogCBMax.X), (elevationView.Origin.Y - (0 - ogCBMin.Z)), planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(0 - Math.Abs(ogCBMin.X), elevationView.Origin.Y - (0 - ogCBMin.Z) + planExtent, planCropBox.Max.Z);
+                            break;
+                        case "East":
+                            planCropBox.Min = new XYZ(elevationView.Origin.X - (0 - ogCBMin.Z), ogCBMin.X, planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(elevationView.Origin.X - (0 - ogCBMin.Z) + planExtent, ogCBMax.X, planCropBox.Max.Z);
+                            break;
+                        case "West":
+                            planCropBox.Min = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent, ogCBMin.X + (0 - ogCBMin.X) - (1 * cropOffset), planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z), ogCBMax.X + (0 - ogCBMin.X) - (1 * cropOffset), planCropBox.Max.Z);
+                            break;
+                    }
                     break;
                 case "Q3":
                     TaskDialog.Show("Quadrant", "Elevation in Q3");
@@ -210,7 +241,6 @@ namespace PDG_Elevation_Builder
                     TaskDialog.Show("Quadrant", "Elevation in Q4");
                     break;
             }
-
             // Apply the crop box
             planView.CropBox = planCropBox;
         }
@@ -264,6 +294,107 @@ namespace PDG_Elevation_Builder
             return null;
         }
 
+        /// <summary>
+        /// Finds the plan view containing a specific elevation marker and gets its center coordinates
+        /// </summary>
+        /// <param name="doc">The Revit document</param>
+        /// <param name="marker">The specific elevation marker to find</param>
+        /// <returns>Tuple containing the marker and its center position</returns>
+        public static (View hostView, XYZ center) GetElevationMarkerCenter(Document doc, ElevationMarker marker)
+        {
+            if (marker == null || doc == null)
+                return (null, XYZ.Zero);
+
+            // Get all plan views in the document
+            List<ViewPlan> planViews = new FilteredElementCollector(doc)
+                .OfClass(typeof(ViewPlan))
+                .Cast<ViewPlan>()
+                .Where(v => !v.IsTemplate && v.CanBePrinted)
+                .ToList();
+
+            // Check each plan view for the marker
+            foreach (ViewPlan view in planViews)
+            {
+                // Check if this specific marker belongs to this view
+                if (marker.OwnerViewId == view.Id)
+                {
+                    // Calculate center from bounding box
+                    BoundingBoxXYZ bb = marker.get_BoundingBox(view);
+                    if (bb != null)
+                    {
+                        XYZ center = new XYZ(
+                            (bb.Min.X + bb.Max.X) / 2.0,
+                            (bb.Min.Y + bb.Max.Y) / 2.0,
+                            (bb.Min.Z + bb.Max.Z) / 2.0);
+                        return (view, center);
+                    }
+                }
+            }
+
+            // If marker isn't found in any view, return null and zero
+            return (null, XYZ.Zero);
+        }
+
+
+        /// <summary>
+        /// Gets the XYZ location of an elevation marker
+        /// </summary>
+        /// <param name="marker">The elevation marker</param>
+        /// <returns>XYZ location of the marker</returns>
+        private XYZ GetElevationMarkerLocation(ElevationMarker marker, ViewPlan planView)
+        {
+            XYZ position = new XYZ();
+            
+            // Alternatively, try to get location from bounding box
+            BoundingBoxXYZ bb = marker.get_BoundingBox(planView);
+            if (bb != null)
+            {
+                // Use the center of the bounding box
+                position = new XYZ(
+                    (bb.Min.X + bb.Max.X) / 2.0,
+                    (bb.Min.Y + bb.Max.Y) / 2.0,
+                    (bb.Min.Z + bb.Max.Z) / 2.0);
+                return position;
+            }
+
+            // If all else fails, try to get location from element parameters
+            Parameter xParam = marker.LookupParameter("X");
+            Parameter yParam = marker.LookupParameter("Y");
+            Parameter zParam = marker.LookupParameter("Z");
+
+            if (xParam != null && yParam != null && zParam != null)
+            {
+                position = new XYZ(
+                    xParam.AsDouble(),
+                    yParam.AsDouble(),
+                    zParam.AsDouble());
+                return position;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a View from the document by its ElementId
+        /// </summary>
+        /// <param name="viewId">The ElementId of the view to retrieve</param>
+        /// <returns>The View object, or null if not found or not a View</returns>
+        private View GetViewById(ElementId viewId)
+        {
+            if (viewId == null || viewId == ElementId.InvalidElementId)
+                return null;
+
+            // Get the element from the document
+            Element element = _doc.GetElement(viewId);
+
+            // Check if the element is a View
+            if (element is View view)
+            {
+                return view;
+            }
+
+            return null;
+        }
         /// <summary>
         /// Gets the level associated with an elevation view
         /// </summary>
@@ -388,12 +519,12 @@ namespace PDG_Elevation_Builder
             if (Math.Abs(viewDir.Y) > Math.Abs(viewDir.X))
             {
                 // Primarily Y-oriented
-                return viewDir.Y > 0 ? "North" : "South";
+                return viewDir.Y > 0 ? "South" : "North";
             }
             else
             {
                 // Primarily X-oriented
-                return viewDir.X > 0 ? "East" : "West";
+                return viewDir.X > 0 ? "West" : "East";
             }
         }
     }
