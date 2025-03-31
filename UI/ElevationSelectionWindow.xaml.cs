@@ -186,6 +186,16 @@ namespace PDG_Elevation_Builder.UI
             ElevationViewModel currentElevation = checkBox.DataContext as ElevationViewModel;
             if (currentElevation == null) return;
 
+            // Check if multiple items are selected in the ListView
+            if (ElevationsListView.SelectedItems.Count > 1 && ElevationsListView.SelectedItems.Contains(currentElevation))
+            {
+                // Apply the same IsSelected value to all selected items
+                foreach (ElevationViewModel elevation in ElevationsListView.SelectedItems)
+                {
+                    elevation.IsSelected = currentElevation.IsSelected;
+                }
+            }
+
             // Check if Shift key is pressed for batch selection
             if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
             {

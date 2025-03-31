@@ -209,6 +209,16 @@ namespace PDG_Elevation_Builder.UI
             RoomViewModel currentRoom = checkBox.DataContext as RoomViewModel;
             if (currentRoom == null) return;
 
+            // Check if multiple items are selected in the ListView
+            if (RoomsListView.SelectedItems.Count > 1 && RoomsListView.SelectedItems.Contains(currentRoom))
+            {
+                // Apply the same IsSelected value to all selected items
+                foreach (RoomViewModel room in RoomsListView.SelectedItems)
+                {
+                    room.IsSelected = currentRoom.IsSelected;
+                }
+            }
+
             // Check if Shift key is pressed for batch selection
             if (Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift) || Keyboard.IsKeyDown(System.Windows.Input.Key.RightShift))
             {
