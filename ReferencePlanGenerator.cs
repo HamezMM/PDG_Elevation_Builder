@@ -235,7 +235,25 @@ namespace PDG_Elevation_Builder
                     }
                     break;
                 case "Q3":
-                    TaskDialog.Show("Quadrant", "Elevation in Q3");
+                    switch (direction)
+                    {
+                        case "North":
+                            planCropBox.Min = new XYZ(ogCBMin.X, (elevationView.Origin.Y + (0 - ogCBMin.Z)) - planExtent, planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(ogCBMax.X, elevationView.Origin.Y + (0 - ogCBMin.Z), planCropBox.Max.Z + 1);
+                            break;
+                        case "South":
+                            planCropBox.Min = new XYZ(0 - Math.Abs(ogCBMax.X), (elevationView.Origin.Y - (0 - ogCBMin.Z)), planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(0 - Math.Abs(ogCBMin.X), elevationView.Origin.Y - (0 - ogCBMin.Z) + planExtent, planCropBox.Max.Z + 1);
+                            break;
+                        case "East":
+                            planCropBox.Min = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z) - planExtent, (0 - ogCBMax.X), planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(elevationView.Origin.X + (0 - ogCBMin.Z), (0 - ogCBMin.X), planCropBox.Max.Z + 1);
+                            break;
+                        case "West":
+                            planCropBox.Min = new XYZ(elevationView.Origin.X + ogCBMin.Z, ogCBMin.X, planCropBox.Min.Z);
+                            planCropBox.Max = new XYZ(elevationView.Origin.X + ogCBMin.Z + planExtent, ogCBMax.X, planCropBox.Max.Z + 1);
+                            break;
+                    }
                     break;
                 case "Q4":
                     TaskDialog.Show("Quadrant", "Elevation in Q4");
