@@ -18,6 +18,15 @@
     <VendorId>com.YOUR COMPANY NAME</VendorId>
     <VendorDescription>YOUR COMPANY NAME, YOUR COMPANY URL</VendorDescription>
   </AddIn>
+  <AddIn Type="Command">
+	<Text>PDG_Elevation_Builder - Command 3</Text>
+	<Description>Some description</Description>
+	<Assembly>PDG_Elevation_Builder\PDG_Elevation_Builder.dll</Assembly>
+	<FullClassName>PDG_Elevation_Builder.ElementSelectionElevationCommand</FullClassName>
+	<ClientId>0D154E13-DECD-46CE-A8C6-9D2C81CB5072</ClientId>
+	<VendorId>com.YOUR COMPANY NAME</VendorId>
+	<VendorDescription>YOUR COMPANY NAME, YOUR COMPANY URL</VendorDescription>
+  </AddIn>
   <AddIn Type="Application">
     <Name>PDG_Elevation_Builder</Name>
     <Assembly>PDG_Elevation_Builder\PDG_Elevation_Builder.dll</Assembly>

@@ -7,6 +7,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 using PDG_Elevation_Builder.Models;
 using PDG_Elevation_Builder.UI;
+using PDG_Shared_Methods;
 using PDGMethods;
 
 namespace PDG_Elevation_Builder
@@ -81,6 +82,34 @@ namespace PDG_Elevation_Builder
                     createdViews.Add(planView.Id);
                 }
             }
+
+            double viewTime = 12 * createdViews.Count();
+
+            double manualTime = viewTime;
+
+            // Factor the time saved into decimal hours
+            double timeSaved = manualTime * 0.00027777777777777778;
+
+            // Get current user
+            string username = Environment.UserName;
+
+            Task.Run(async () =>
+            {
+                var fields = AirtableUtils.LogCommandRun(
+                    "Create Elevation Reference Plans",
+                    username,
+                    timeSaved,
+                    Result.Succeeded
+                );
+
+                await AirtableUtils.AddRecord(
+                    "patTfknaTE8PDMSf0.94bd050d6f7949ae2f4f64a24b8f3a85b83212cd3f08f91430220c3d624dee86",
+                    "appzT98QjKTqecJ0V",
+                    "tblz8Be6kFE3IQ1Jc",
+                    fields
+                );
+            }).Wait();
+
 
             return createdViews;
         }

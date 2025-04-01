@@ -21,10 +21,12 @@ namespace PDG_Elevation_Builder
             // 3. Create button data instances
             PushButtonData btnData1 = ElevationBuilderCommand.GetButtonData();
             PushButtonData btnData2 = ReferencePlanCreatorCommand.GetButtonData();
+            PushButtonData btnData3 = ElementSelectionElevationCommand.GetButtonData();
 
             // 4. Create buttons
             PushButton myButton1 = panel.AddItem(btnData1) as PushButton;
             PushButton myButton2 = panel.AddItem(btnData2) as PushButton;
+            PushButton myButton3 = panel.AddItem(btnData3) as PushButton;
 
             // NOTE:
             // To create a new tool, copy lines 35 and 39 and rename the variables to "btnData3" and "myButton3". 
