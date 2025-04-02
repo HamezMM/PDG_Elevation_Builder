@@ -69,8 +69,8 @@ namespace PDG_Elevation_Builder
                 buttonInternalName,
                 buttonTitle,
                 typeof(ReferencePlanCreatorCommand).FullName,
-                Properties.Resources.Blue_32, // Use an appropriate icon
-                Properties.Resources.Blue_16, // Use an appropriate icon
+                Properties.Resources.Reference_Plans_32,
+                Properties.Resources.Reference_Plans_16, 
                 "Create reference plans from elevation views");
 
             return myButtonData.Data;

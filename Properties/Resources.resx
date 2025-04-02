@@ -136,6 +136,24 @@
   <data name="Red_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Red_32.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="Reference_Plans_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Reference_Plans_16.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Reference_Plans_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Reference_Plans_32.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Room_Elevations_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Room_Elevations_16.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Room_Elevations_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Room_Elevations_32.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Selection_Elevations_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Selection_Elevations_16.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Selection_Elevations_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Selection_Elevations_32.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="Yellow_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Yellow_16.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>

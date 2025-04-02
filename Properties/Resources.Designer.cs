@@ -123,6 +123,66 @@ namespace PDG_Elevation_Builder.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] Reference_Plans_16 {
+            get {
+                object obj = ResourceManager.GetObject("Reference_Plans_16", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Reference_Plans_32 {
+            get {
+                object obj = ResourceManager.GetObject("Reference_Plans_32", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Room_Elevations_16 {
+            get {
+                object obj = ResourceManager.GetObject("Room_Elevations_16", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Room_Elevations_32 {
+            get {
+                object obj = ResourceManager.GetObject("Room_Elevations_32", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Selection_Elevations_16 {
+            get {
+                object obj = ResourceManager.GetObject("Selection_Elevations_16", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Selection_Elevations_32 {
+            get {
+                object obj = ResourceManager.GetObject("Selection_Elevations_32", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] Yellow_16 {
             get {
                 object obj = ResourceManager.GetObject("Yellow_16", resourceCulture);

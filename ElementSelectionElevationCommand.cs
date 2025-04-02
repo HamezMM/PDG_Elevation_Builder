@@ -630,8 +630,8 @@ namespace PDG_Elevation_Builder
                 buttonInternalName,
                 buttonTitle,
                 typeof(ElementSelectionElevationCommand).FullName,
-                Properties.Resources.Green_32, // Use an appropriate icon
-                Properties.Resources.Green_16, // Use an appropriate icon
+                Properties.Resources.Selection_Elevations_32, 
+                Properties.Resources.Selection_Elevations_16,
                 "Create elevation views for selected elements");
 
             return myButtonData.Data;
